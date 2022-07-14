@@ -1,0 +1,5 @@
+1.首次运行时，将数据库文件“zhenxun.sql”放置在容器的该目录下时，会自动导入数据库数据。
+
+2.每次运行时，当容器的该目录下存在“zxfile”目录时，会将“session.token”，“device.json”，“config.yml”，“config.py”，“config.yaml”复制到“zxfile”，您可以对其进行修改并配合下面一条进行替换。
+
+3.每次运行时，当容器的该目录下存在“update”目录时，会将“update”目录下的“session.token”，“device.json” ，“config.yml” “config.py”， “config.yaml”文件复制到相应的目录（如果存在该文件的话）并删除update目录。此功能是为了方便修改机器人账号和机器人设置，当然您也可以直接挂载容器的“/home”目录进行修改。

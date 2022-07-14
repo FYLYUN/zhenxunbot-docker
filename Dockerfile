@@ -1,12 +1,21 @@
 FROM bitnami/git as Git-Clone
 WORKDIR /usr/local/code
-RUN git clone https://github.com/HibiKier/zhenxun_bot_webui.git && git clone https://github.com/HibiKier/zhenxun_bot.git
+RUN git clone https://github.com/HibiKier/zhenxun_bot.git
 
 ###############################################################################
 
 FROM python:3.9-slim-bullseye as Python-Whl-Builder
-RUN apt update && apt install -y --no-install-recommends gcc libc6-dev  && \
-pip install -r https://raw.githubusercontent.com/zhenxun-org/zhenxun_bot-deploy/master/requirements.txt && \
+#更换国内apt源
+RUN mv /etc/apt/sources.list /etc/apt/sources.list.bak && \
+echo "deb http://mirrors.ustc.edu.cn/debian stable-updates main contrib non-free" >>/etc/apt/sources.list && \
+echo "deb http://mirrors.ustc.edu.cn/debian stable main contrib non-free" >>/etc/apt/sources.list && \
+#安装依赖
+apt update && apt install -y --no-install-recommends gcc libc6-dev  && \
+#更换国内pip源
+pip install -i https://pypi.douban.com/simple/ -U pip && \
+pip config set global.index-url https://pypi.douban.com/simple/ && \
+#安装依赖
+pip install -r https://www.lyun.me/requirements.txt && \
 pip install rich requests jinja2 thefuzz aiocache baike imageio
 
 ##############################################################################
@@ -19,25 +28,26 @@ COPY --from=Git-Clone /usr/local/code /home
 COPY --from=Python-Whl-Builder /usr/local/lib/python3.9/site-packages /usr/local/lib/python3.9/site-packages
 COPY --from=Python-Whl-Builder /usr/local/bin/playwright /usr/local/bin/playwright
 #拷贝预先准备好的文件
-COPY files ./
+COPY files /home
+COPY docker-entrypoint.sh /
 #环境变量
-ENV bot_qq=${bot_qq}
-ENV bot_qq_key=${bot_qq_key}
-ENV admin_qq=${admin_qq}
-ENV webui_passwd={$webui_passwd}
-ENV webui_user={$webui_user}
-ENV api_key={$api_key}
+#ENV bot_qq=$bot_qq
+#ENV bot_qq_key=$bot_qq_key
+#ENV SU=$SU
+#ENV webui_passwd=$webui_passwd
+#ENV webui_user=$webui_user
+#ENV api_key=$api_key
+#ENV DB=$DB
+#ENV DB_ROOT=$DB_ROOT
 
-# apt安装依赖,切换目录是为了后面WebUI可以直接连着减少镜像层数
-WORKDIR /home/zhenxun_bot_webui
-RUN apt update && \
+# apt安装依赖
+RUN  mv /etc/apt/sources.list /etc/apt/sources.list.bak && \
+echo "deb http://mirrors.ustc.edu.cn/debian stable-updates main contrib non-free" >>/etc/apt/sources.list && \
+echo "deb http://mirrors.ustc.edu.cn/debian stable main contrib non-free" >>/etc/apt/sources.list && apt update && \
 apt upgrade -y && \
 apt install -y --no-install-recommends \
 #解决重启BUG
 net-tools \
-#WebUI要用的node.js
-nodejs \
-npm \
 #PostgreSQL数据库
 postgresql \
 postgresql-contrib \
@@ -51,15 +61,17 @@ libcups2 \
 libxcomposite1 \
 #中文字体，解决原神黄历方块字问题
 fonts-wqy-microhei && \
+#安装chromium，免得每次重装都要重新安装
+playwright install chromium && \
+playwright install-deps chromium && \
 #清缓存
 apt clean && \
+#恢复源
+mv /etc/apt/sources.list.bak /etc/apt/sources.list && \
 # 调时区
 ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
-echo 'Asia/Shanghai' > /etc/timezone && \
-# 安装web_ui
-npm install -g @vue/cli yarn && \
-yarn && \
-yarn cache clean
+echo 'Asia/Shanghai' > /etc/timezone
+#声明匿名卷，保证最重要的数据库不会丢失
+VOLUME /var/lib/postgresql
 
-WORKDIR /home
-ENTRYPOINT ["./docker-entrypoint.sh"]
+ENTRYPOINT ["/docker-entrypoint.sh"]

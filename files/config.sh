@@ -30,6 +30,25 @@ if [ ! "$DB_ROOT" ];then
     echo -e "\033[31m未设置数据库ROOT密码,设置为默认值\033[0m"
 	DB_ROOT=sdfSDF45sdfg45SD
 fi
+if [ ! "$GOCQ" ];then
+    echo -e "\033[33m使用容器自带的go-cqhttp\033[0m"
+else 
+	cqipt=${GOCQ#*//}
+	cqipt=${cqipt%%/*}
+	cqip=${cqipt%%:*}
+	cqpt=${cqipt#*:}
+	if [ ! "$cqip" ];then
+		cqip="127.0.0.1"
+	else
+		sed -i 's|HOST = .*|''HOST = '$cqip'|g' /home/zhenxun_bot/.env.dev
+	fi
+	if [ ! "$cqpt" ];then
+		cqpt="8080"
+	else
+		sed -i 's|PORT = .*|''PORT = '$cqpt'|g' /home/zhenxun_bot/.env.dev
+	fi
+	echo -e "已设置服务器IP与端口为$cqip:$cqpt"
+fi
 ip=${DB#*@}
 ip=${ip%%:*}
 up=${DB#*//}
@@ -49,21 +68,24 @@ echo -e "已设置数据库链接为"$DB
 echo -e "请确保你的数据库信息没有问题，否则会连不上数据库！"
 #因为变量里有/，所以不能用/分隔符，否则会报错，故换成|分隔符
 
-#mkdir /home/zhenxun_bot/extensive_plugin >/dev/null 2>&1
+if [ ! -d "/home/zhenxun_bot/extensive_plugin/go-cqhttp" ];then
+	mkdir /home/zhenxun_bot/extensive_plugin/go-cqhttp >/dev/null 2>&1
+	echo -e "已添加/home/zhenxun_bot/extensive_plugin/go-cqhttp目录"
+fi
 #sed -i '14a nonebot.load_plugins("extensive_plugin")' ./zhenxun_bot/bot.py
 #echo -e "已添加自定义插件目录 extensive_plugin 配置"
 
 get_arch=`arch`
 if [[ $get_arch =~ "x86_64" ]];then
 	if [ -f "/home/go-cqhttp/go-cqhttp-amd64" ];then
-		mv /home/go-cqhttp/go-cqhttp-amd64 /home/go-cqhttp/go-cqhttp
-		rm -f /home/go-cqhttp/go-cqhttp-arm64
+		mv /home/go-cqhttp/go-cqhttp-amd64 /usr/bin/go-cqhttp
+		rm -rf /home/go-cqhttp
 	fi
     echo -e "\033[34m检测到你的设备是amd64架构\033[0m"
 elif [[ $get_arch =~ "aarch64" ]];then
 	if [ -f "/home/go-cqhttp/go-cqhttp-arm64" ];then
-		mv /home/go-cqhttp/go-cqhttp-arm64 /home/go-cqhttp/go-cqhttp
-		rm -f /home/go-cqhttp/go-cqhttp-amd64
+		mv /home/go-cqhttp/go-cqhttp-arm64 /usr/bin/go-cqhttp
+		rm -f /home/go-cqhttp
 	fi
     echo -e "\033[34m检测到你的设备是arm64架构\033[0m"
 fi

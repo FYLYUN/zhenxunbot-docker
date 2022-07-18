@@ -59,6 +59,8 @@ libatk1.0-0 \
 libatk-bridge2.0-0 \
 libcups2 \
 libxcomposite1 \
+#screen，用于后台运行gocq
+screen \
 #中文字体，解决原神黄历方块字问题
 fonts-wqy-microhei && \
 #安装chromium，免得每次重装都要重新安装
